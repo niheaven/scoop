@@ -174,7 +174,7 @@
                             "additionalProperties": false,
                             "properties": {
                                 "extract_dir": {
-                                    "type": "string"
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
                                 },
                                 "url": {
                                     "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
@@ -189,7 +189,7 @@
                             "additionalProperties": false,
                             "properties": {
                                 "extract_dir": {
-                                    "type": "string"
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
                                 },
                                 "url": {
                                     "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
@@ -204,7 +204,7 @@
                     "type": "object"
                 },
                 "extract_dir": {
-                    "type": "string"
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
                 },
                 "hash": {
                     "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
