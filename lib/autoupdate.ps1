@@ -304,21 +304,51 @@ function update_manifest_with_new_version($json, [String] $version, $url, $hash,
     }
 }
 
-function update_manifest_prop([String] $prop, $json, [Hashtable] $substitutions) {
-    # first try the global property
-    if ($json.$prop -and $json.autoupdate.$prop) {
-        $json.$prop = substitute $json.autoupdate.$prop $substitutions
+function Update-ManifestProperty {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 1)]
+        [PSObject]
+        $Manifest,
+        [Parameter(ValueFromPipeline = $true)]
+        [String[]]
+        $Property,
+        [String]
+        $Version,
+        # For multi-arch, $Hash likes "@{'32bit' = [String[]]; '64bit' = [String[]]}"
+        [String[]]
+        $Hash,
+        [Alias("Matches")]
+        [HashTable]
+        $Substitutions
+    )
+    if ($null -ne $Version) {
+        $Manifest.version = $Version
     }
-
-    # check if there are architecture specific variants
-    if ($json.architecture -and $json.autoupdate.architecture) {
-        $json.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
-            $architecture = $_.Name
-            if ($json.architecture.$architecture.$prop -and $json.autoupdate.architecture.$architecture.$prop) {
-                $json.architecture.$architecture.$prop = substitute (arch_specific $prop $json.autoupdate $architecture) $substitutions
+    foreach ($Property_ in $Property) {
+        if ($Property_ -eq 'hash') {
+            if ($Manifest.hash) {
+                $Manifest.hash = $Hash
+            } else {
+                $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
+                    $Arch = $_.Name
+                    $Manifest.architecture.$Arch.hash = $Hash.$Arch
+                }
+            }
+        } elseif ($Manifest.$Property_ -and $Manifest.autoupdate.$Property_) {
+            # first try the global property
+            $Manifest.$Property_ = substitute $Manifest.autoupdate.$Property_ $Substitutions
+        } elseif ($Manifest.architecture) {
+            # check if there are architecture specific variants
+            $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
+                $Arch = $_.Name
+                if ($Manifest.architecture.$Arch.$Property_ -and ($Manifest.autoupdate.architecture.$Arch.$Property_ -or $Manifest.autoupdate.$Property_)) {
+                    $Manifest.architecture.$Arch.$Property_ = substitute (arch_specific $Property_ $Manifest.autoupdate $Arch) $Substitutions
+                }
             }
         }
     }
+
 }
 
 function get_version_substitutions([String] $version, [Hashtable] $customMatches) {
@@ -407,13 +437,11 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
             $url   = substitute $json.autoupdate.url $substitutions
             $valid = $true
 
-            if($valid) {
-                # create hash
-                $hash = get_hash_for_app $app $json.autoupdate.hash $version $url $substitutions
-                if ($null -eq $hash) {
-                    $valid = $false
-                    Write-Host -f DarkRed "Could not find hash!"
-                }
+            # create hash
+            $hash = get_hash_for_app $app $json.autoupdate.hash $version $url $substitutions
+            if ($null -eq $hash) {
+                $valid = $false
+                Write-Host -f DarkRed "Could not find hash!"
             }
 
             # write changes to the json object
@@ -434,13 +462,11 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
             $url   = substitute (arch_specific "url" $json.autoupdate $architecture) $substitutions
             $valid = $true
 
-            if($valid) {
-                # create hash
-                $hash = get_hash_for_app $app (arch_specific "hash" $json.autoupdate $architecture) $version $url $substitutions
-                if ($null -eq $hash) {
-                    $valid = $false
-                    Write-Host -f DarkRed "Could not find hash!"
-                }
+            # create hash
+            $hash = get_hash_for_app $app (arch_specific "hash" $json.autoupdate $architecture) $version $url $substitutions
+            if ($null -eq $hash) {
+                $valid = $false
+                Write-Host -f DarkRed "Could not find hash!"
             }
 
             # write changes to the json object
@@ -455,10 +481,7 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
     }
 
     # update properties
-    update_manifest_prop "extract_dir" $json $substitutions
-
-    # update license
-    update_manifest_prop "license" $json $substitutions
+    Update-ManifestProperty -Manifest $json -Properties "extract_dir" -Substitutions $substitutions
 
     if ($has_changes -and !$has_errors) {
         # write file
