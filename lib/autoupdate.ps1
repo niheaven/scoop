@@ -310,7 +310,7 @@ function Update-ManifestProperty {
         [Parameter(Mandatory = $true, Position = 1)]
         [PSObject]
         $Manifest,
-        [Parameter(ValueFromPipeline = $true)]
+        [Parameter(ValueFromPipeline = $true, Position = 2)]
         [String[]]
         $Property,
         [String]
@@ -322,33 +322,36 @@ function Update-ManifestProperty {
         [HashTable]
         $Substitutions
     )
-    if ($null -ne $Version) {
-        $Manifest.version = $Version
-    }
-    foreach ($Property_ in $Property) {
-        if ($Property_ -eq 'hash') {
-            if ($Manifest.hash) {
-                $Manifest.hash = $Hash
-            } else {
+    process {
+        foreach ($aProperty in $Property) {
+            if ($aProperty -eq 'hash') {
+                if ($Manifest.hash) {
+                    $Manifest.hash = $Hash
+                } else {
+                    $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
+                        $Arch = $_.Name
+                        $Manifest.architecture.$Arch.hash = $Hash.$Arch
+                    }
+                }
+            } elseif ($Manifest.$aProperty -and $Manifest.autoupdate.$aProperty) {
+                # first try the global property
+                $Manifest.$aProperty = substitute $Manifest.autoupdate.$aProperty $Substitutions
+            } elseif ($Manifest.architecture) {
+                # check if there are architecture specific variants
                 $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
                     $Arch = $_.Name
-                    $Manifest.architecture.$Arch.hash = $Hash.$Arch
-                }
-            }
-        } elseif ($Manifest.$Property_ -and $Manifest.autoupdate.$Property_) {
-            # first try the global property
-            $Manifest.$Property_ = substitute $Manifest.autoupdate.$Property_ $Substitutions
-        } elseif ($Manifest.architecture) {
-            # check if there are architecture specific variants
-            $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
-                $Arch = $_.Name
-                if ($Manifest.architecture.$Arch.$Property_ -and ($Manifest.autoupdate.architecture.$Arch.$Property_ -or $Manifest.autoupdate.$Property_)) {
-                    $Manifest.architecture.$Arch.$Property_ = substitute (arch_specific $Property_ $Manifest.autoupdate $Arch) $Substitutions
+                    if ($Manifest.architecture.$Arch.$aProperty -and ($Manifest.autoupdate.architecture.$Arch.$aProperty -or $Manifest.autoupdate.$aProperty)) {
+                        $Manifest.architecture.$Arch.$aProperty = substitute (arch_specific $aProperty $Manifest.autoupdate $Arch) $Substitutions
+                    }
                 }
             }
         }
     }
-
+    end {
+        if ($null -ne $Version) {
+            $Manifest.version = $Version
+        }
+    }
 }
 
 function get_version_substitutions([String] $version, [Hashtable] $customMatches) {
