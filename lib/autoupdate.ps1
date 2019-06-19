@@ -281,31 +281,9 @@ function get_hash_for_app([String] $app, $config, [String] $version, [String] $u
     return $hash
 }
 
-function update_manifest_with_new_version($json, [String] $version, $url, $hash, $architecture = $null) {
-    $json.version = $version
-
-    if ($null -eq $architecture) {
-        if ($json.url -is [System.Array] -and $url -isnot [System.Array]) {
-            $json.url[0] = $url
-            $json.hash[0] = $hash
-        } else {
-            $json.url = $url
-            $json.hash = $hash
-        }
-    } else {
-        # If there are multiple urls we replace the first one
-        if ($json.architecture.$architecture.url -is [System.Array] -and $url -isnot [System.Array]) {
-            $json.architecture.$architecture.url[0] = $url
-            $json.architecture.$architecture.hash[0] = $hash
-        } else {
-            $json.architecture.$architecture.url = $url
-            $json.architecture.$architecture.hash = $hash
-        }
-    }
-}
-
 function Update-ManifestProperty {
     [CmdletBinding()]
+    [OutputType([String[]])]
     param (
         [Parameter(Mandatory = $true, Position = 1)]
         [PSObject]
@@ -314,43 +292,120 @@ function Update-ManifestProperty {
         [String[]]
         $Property,
         [String]
+        $AppName,
+        [String]
         $Version,
-        # For multi-arch, $Hash likes "@{'32bit' = [String[]]; '64bit' = [String[]]}"
-        [String[]]
-        $Hash,
         [Alias("Matches")]
         [HashTable]
         $Substitutions
     )
+    begin {
+        function PropertyHelper {
+            # Update property array
+            param (
+                [PSObject]$Property,
+                [PSObject]$Value
+            )
+            if ($Property -is [Array]) {
+                $Value = @($Value)
+                for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
+                    $Property[$i] = $Value[$i]
+                }
+                return $Property
+            } else {
+                if ($Value = $Value -as $Property.GetType()) {
+                    return $Value
+                } else {
+                    return $Property
+                }
+            }
+        }
+        function HashHelper {
+            # Get hashes for multi urls
+            param (
+                [String]
+                $AppName,
+                [String]
+                $Version,
+                [PSObject[]]
+                $HashExtraction,
+                [String[]]
+                $URL,
+                [HashTable]
+                $Substitutions
+            )
+            $Hash = @()
+            for ($i = 0; $i -lt $URL.Length; $i++) {
+                if ($null -eq $HashExtraction) {
+                    $aHashExtraction = $null
+                } else {
+                    $aHashExtraction = $HashExtraction[$i], $HashExtraction[-1] | Select-Object -First 1
+                }
+                $Hash += get_hash_for_app $AppName $aHashExtraction $Version $URL[$i] $Substitutions
+                if ($null -eq $Hash[$i]) {
+                    abort "Could not update $AppName, hash for $URL[$i] failed!"
+                }
+            }
+            if ($Hash.Length -eq 1) {
+                return $Hash[0]
+            } else {
+                return $Hash
+            }
+        }
+        $Changed = $false
+    }
     process {
         foreach ($aProperty in $Property) {
             if ($aProperty -eq 'hash') {
+                # Update hash
                 if ($Manifest.hash) {
-                    $Manifest.hash = $Hash
+                    # Global
+                    $NewURL = substitute $Manifest.autoupdate.url $Substitutions
+                    $NewHash = HashHelper $AppName $Version $Manifest.autoupdate.hash $NewURL $Substitutions
+                    if (Compare-Object @($Manifest.hash)[0..($NewHash.Length - 1)] @($NewHash)) {
+                        $Manifest.hash = PropertyHelper -Property $Manifest.hash -Value $NewHash
+                        $Changed = $true
+                    }
                 } else {
+                    # Arch-spec
                     $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
                         $Arch = $_.Name
-                        $Manifest.architecture.$Arch.hash = $Hash.$Arch
+                        $NewURL = substitute (arch_specific 'url' $Manifest.autoupdate $Arch) $Substitutions
+                        $NewHash = HashHelper $AppName $Version (arch_specific 'hash' $Manifest.autoupdate $Arch) $NewURL $Substitutions
+                        if (Compare-Object @($Manifest.architecture.$Arch.hash)[0..($NewHash.Length - 1)] @($NewHash)) {
+                            $Manifest.architecture.$Arch.hash = PropertyHelper -Property $Manifest.architecture.$Arch.hash -Value $NewHash
+                            $Changed = $true
+                        }
                     }
                 }
             } elseif ($Manifest.$aProperty -and $Manifest.autoupdate.$aProperty) {
-                # first try the global property
-                $Manifest.$aProperty = substitute $Manifest.autoupdate.$aProperty $Substitutions
+                # Update other property (global)
+                $NewValue = substitute $Manifest.autoupdate.$aProperty $Substitutions
+                if (Compare-Object @($Manifest.$aProperty)[0..($NewValue.Length - 1)] @($NewValue)) {
+                    $Manifest.$aProperty = PropertyHelper -Property $Manifest.$aProperty -Value $NewValue
+                    $Changed = $true
+                }
             } elseif ($Manifest.architecture) {
-                # check if there are architecture specific variants
+                # Update other property (arch-spec)
                 $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
                     $Arch = $_.Name
                     if ($Manifest.architecture.$Arch.$aProperty -and ($Manifest.autoupdate.architecture.$Arch.$aProperty -or $Manifest.autoupdate.$aProperty)) {
-                        $Manifest.architecture.$Arch.$aProperty = substitute (arch_specific $aProperty $Manifest.autoupdate $Arch) $Substitutions
+                        $NewValue = substitute (arch_specific $aProperty $Manifest.autoupdate $Arch) $Substitutions
+                        if (Compare-Object @($Manifest.architecture.$Arch.$aProperty)[0..($NewValue.Length - 1)] @($NewValue)) {
+                            $Manifest.architecture.$Arch.$aProperty = PropertyHelper -Property $Manifest.architecture.$Arch.$aProperty -Value $NewValue
+                            $Changed = $true
+                        }
                     }
                 }
             }
         }
     }
     end {
-        if ($null -ne $Version) {
+        if ($Version -ne '' -and $Manifest.version -ne $Version) {
             $Manifest.version = $Version
+            $Changed = $true
         }
+        return $Changed
     }
 }
 
@@ -382,111 +437,15 @@ function get_version_substitutions([String] $version, [Hashtable] $customMatches
     return $versionVariables
 }
 
-function lets_do_autoupdates([String] $app, $json, [String] $version, $substitutions) {
-    $urls = @()
-    $hashes = @()
-    $has_changes = $false
-    $has_errors = $false
-    [Bool]$valid = $true
-
-    for ($i=0; $i -lt $json.autoupdate.url.Length; $i++) {
-        # create new url
-        $url   = substitute $json.autoupdate.url[$i] $substitutions
-        $urls += $url
-
-        if($valid) {
-            # create hash
-            if ($json.autoupdate.hash.length -gt $i) {
-                $h = $json.autoupdate.hash[$i]
-            } else {
-                $h = $null
-            }
-            $hash = get_hash_for_app $app $h $version $url $substitutions
-            $hashes += $hash
-            if ($null -eq $hash) {
-                $valid = $false
-                Write-Host -f DarkRed "Could not find hash!"
-            }
-        }
-    }
-
-    # write changes to the json object
-    if ($valid) {
-        $has_changes = $true
-        update_manifest_with_new_version $json $version $urls $hashes
-    } else {
-        $has_errors = $true
-        throw "Could not update $app"
-    }
-
-    return $has_changes, $has_errors
-}
-
-
 function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $matches) {
     Write-Host -f DarkCyan "Autoupdating $app"
-    $has_changes = $false
-    $has_errors = $false
-    [Bool]$valid = $true
     $substitutions = get_version_substitutions $version $matches
 
-    if ($json.url) {
-        if ($json.autoupdate.url -is [System.Array]) {
-            $has_changes, $has_errors = lets_do_autoupdates $app $json $version $substitutions
-            $has_changes = $return[0]
-            $has_errors = $return[1]
-        } else {
-            # create new url
-            $url   = substitute $json.autoupdate.url $substitutions
-            $valid = $true
-
-            # create hash
-            $hash = get_hash_for_app $app $json.autoupdate.hash $version $url $substitutions
-            if ($null -eq $hash) {
-                $valid = $false
-                Write-Host -f DarkRed "Could not find hash!"
-            }
-
-            # write changes to the json object
-            if ($valid) {
-                $has_changes = $true
-                update_manifest_with_new_version $json $version $url $hash
-            } else {
-                $has_errors = $true
-                throw "Could not update $app"
-            }
-        }
-    } else {
-        $json.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
-            $valid = $true
-            $architecture = $_.Name
-
-            # create new url
-            $url   = substitute (arch_specific "url" $json.autoupdate $architecture) $substitutions
-            $valid = $true
-
-            # create hash
-            $hash = get_hash_for_app $app (arch_specific "hash" $json.autoupdate $architecture) $version $url $substitutions
-            if ($null -eq $hash) {
-                $valid = $false
-                Write-Host -f DarkRed "Could not find hash!"
-            }
-
-            # write changes to the json object
-            if ($valid) {
-                $has_changes = $true
-                update_manifest_with_new_version $json $version $url $hash $architecture
-            } else {
-                $has_errors = $true
-                throw "Could not update $app $architecture"
-            }
-        }
-    }
-
     # update properties
-    Update-ManifestProperty -Manifest $json -Properties "extract_dir" -Substitutions $substitutions
+    $properties_updated = @('url', 'hash', 'extract_dir')
+    $has_changes = Update-ManifestProperty -Manifest $json -Property $properties_updated -AppName $app -Version $version -Substitutions $substitutions
 
-    if ($has_changes -and !$has_errors) {
+    if ($has_changes) {
         # write file
         Write-Host -f DarkGreen "Writing updated $app manifest"
 
