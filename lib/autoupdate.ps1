@@ -282,8 +282,8 @@ function get_hash_for_app([String] $app, $config, [String] $version, [String] $u
 }
 
 function Update-ManifestProperty {
-    [CmdletBinding()]
-    [OutputType([String[]])]
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    [OutputType([Boolean])]
     param (
         [Parameter(Mandatory = $true, Position = 1)]
         [PSObject]
