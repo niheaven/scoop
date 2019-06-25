@@ -823,17 +823,25 @@ function is_scoop_outdated() {
 }
 
 function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
-    if ($entity -is [Array]) {
-        return $entity | ForEach-Object { substitute $_ $params $regexEscape}
-    } elseif ($entity -is [String]) {
-        $params.GetEnumerator() | ForEach-Object {
-            if($regexEscape -eq $false -or $null -eq $_.Value) {
-                $entity = $entity.Replace($_.Name, $_.Value)
-            } else {
-                $entity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
+    switch ($entity) {
+        { $_ -is [String]} {
+            $params.GetEnumerator() | ForEach-Object {
+                if ($regexEscape -eq $false -or $null -eq $_.Value) {
+                    $entity = $entity.Replace($_.Name, $_.Value)
+                } else {
+                    $entity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
+                }
             }
+            return $entity
         }
-        return $entity
+        { $_ -is [Array] } {
+            return $entity | ForEach-Object { substitute $_ $params $regexEscape }
+        }
+        { $_ -is [PSObject] } {
+            $newentity = $entity.PSObject.Copy()
+            $newentity.PSObject.Properties.ForEach( { $_.Value = substitute $_.Value $params $regexEscape })
+            return $newentity
+        }
     }
 }
 

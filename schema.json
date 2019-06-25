@@ -173,14 +173,53 @@
                         "32bit": {
                             "additionalProperties": false,
                             "properties": {
-                                "extract_dir": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
                                 "url": {
                                     "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
                                 },
                                 "hash": {
                                     "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
+                                },
+                                "extract_dir": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "extract_to": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "env_add_path": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "env_set": {
+                                    "type": "object"
+                                },
+                                "bin": {
+                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                                },
+                                "shortcuts": {
+                                    "$ref": "#/definitions/shortcutsArray"
+                                },
+                                "installer": {
+                                    "$ref": "#/definitions/installer"
+                                },
+                                "post_install": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "pre_install": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "uninstaller": {
+                                    "$ref": "#/definitions/uninstaller"
+                                },
+                                "psmodule": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "persist": {
+                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
                                 }
                             },
                             "type": "object"
@@ -188,14 +227,53 @@
                         "64bit": {
                             "additionalProperties": false,
                             "properties": {
-                                "extract_dir": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
                                 "url": {
                                     "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
                                 },
                                 "hash": {
                                     "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
+                                },
+                                "extract_dir": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "extract_to": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "env_add_path": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "env_set": {
+                                    "type": "object"
+                                },
+                                "bin": {
+                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                                },
+                                "shortcuts": {
+                                    "$ref": "#/definitions/shortcutsArray"
+                                },
+                                "installer": {
+                                    "$ref": "#/definitions/installer"
+                                },
+                                "post_install": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "pre_install": {
+                                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                                },
+                                "uninstaller": {
+                                    "$ref": "#/definitions/uninstaller"
+                                },
+                                "psmodule": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "persist": {
+                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
                                 }
                             },
                             "type": "object"
@@ -203,17 +281,56 @@
                     },
                     "type": "object"
                 },
-                "extract_dir": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                "url": {
+                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
                 },
                 "hash": {
                     "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
                 },
-                "note": {
+                "extract_dir": {
                     "$ref": "#/definitions/stringOrArrayOfStrings"
                 },
-                "url": {
-                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
+                "extract_to": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "env_add_path": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "env_set": {
+                    "type": "object"
+                },
+                "bin": {
+                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                },
+                "shortcuts": {
+                    "$ref": "#/definitions/shortcutsArray"
+                },
+                "installer": {
+                    "$ref": "#/definitions/installer"
+                },
+                "post_install": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "pre_install": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "uninstaller": {
+                    "$ref": "#/definitions/uninstaller"
+                },
+                "psmodule": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "persist": {
+                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                },
+                "note": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
                 }
             },
             "type": "object"
