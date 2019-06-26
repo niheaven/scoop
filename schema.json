@@ -107,9 +107,6 @@
                 "bin": {
                     "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
                 },
-                "checkver": {
-                    "$ref": "#/definitions/checkver"
-                },
                 "extract_dir": {
                     "$ref": "#/definitions/stringOrArrayOfStrings"
                 },
@@ -164,6 +161,60 @@
             "minItems": 1,
             "type": "array"
         },
+        "autoupdateArch": {
+            "additionalProperties": false,
+            "properties": {
+                "url": {
+                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
+                },
+                "hash": {
+                    "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
+                },
+                "extract_dir": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "extract_to": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "env_add_path": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "env_set": {
+                    "type": "object"
+                },
+                "bin": {
+                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                },
+                "shortcuts": {
+                    "$ref": "#/definitions/shortcutsArray"
+                },
+                "installer": {
+                    "$ref": "#/definitions/installer"
+                },
+                "post_install": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "pre_install": {
+                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                },
+                "uninstaller": {
+                    "$ref": "#/definitions/uninstaller"
+                },
+                "psmodule": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "persist": {
+                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
+                }
+            },
+            "type": "object"
+        },
         "autoupdate": {
             "additionalProperties": false,
             "properties": {
@@ -171,112 +222,10 @@
                     "additionalProperties": false,
                     "properties": {
                         "32bit": {
-                            "additionalProperties": false,
-                            "properties": {
-                                "url": {
-                                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
-                                },
-                                "hash": {
-                                    "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
-                                },
-                                "extract_dir": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "extract_to": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "env_add_path": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "env_set": {
-                                    "type": "object"
-                                },
-                                "bin": {
-                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                                },
-                                "shortcuts": {
-                                    "$ref": "#/definitions/shortcutsArray"
-                                },
-                                "installer": {
-                                    "$ref": "#/definitions/installer"
-                                },
-                                "post_install": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "pre_install": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "uninstaller": {
-                                    "$ref": "#/definitions/uninstaller"
-                                },
-                                "psmodule": {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "name": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "type": "object"
-                                },
-                                "persist": {
-                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                                }
-                            },
-                            "type": "object"
+                            "$ref": "#/definitions/autoupdateArch"
                         },
                         "64bit": {
-                            "additionalProperties": false,
-                            "properties": {
-                                "url": {
-                                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
-                                },
-                                "hash": {
-                                    "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
-                                },
-                                "extract_dir": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "extract_to": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "env_add_path": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "env_set": {
-                                    "type": "object"
-                                },
-                                "bin": {
-                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                                },
-                                "shortcuts": {
-                                    "$ref": "#/definitions/shortcutsArray"
-                                },
-                                "installer": {
-                                    "$ref": "#/definitions/installer"
-                                },
-                                "post_install": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "pre_install": {
-                                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                                },
-                                "uninstaller": {
-                                    "$ref": "#/definitions/uninstaller"
-                                },
-                                "psmodule": {
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "name": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "type": "object"
-                                },
-                                "persist": {
-                                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                                }
-                            },
-                            "type": "object"
+                            "$ref": "#/definitions/autoupdateArch"
                         }
                     },
                     "type": "object"

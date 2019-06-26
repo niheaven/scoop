@@ -300,75 +300,6 @@ function Update-ManifestProperty {
         $Substitutions
     )
     begin {
-        function PropertyHelper {
-            # Update property array
-            param (
-                [PSObject]$Property,
-                [PSObject]$Value
-            )
-            $Changed = $false
-            switch ($Property) {
-                { $_ -is [String] } {
-                    $Value = $Value -as $Property.GetType().Name
-                    if (($null -eq $Value) -and ($value -ne $Property)) {
-                        return $Value, $true
-                    } else {
-                        return $Property, $false
-                    }
-                }
-                { $_ -is [Array] } {
-                    $Value = @($Value)
-                    for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
-                        $Property[$i], $aChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
-                        $Changed = $Changed -or $aChanged
-                    }
-                    return $Property, $Changed
-                }
-                { $_ -is [PSObject] } {
-                    if ($Value -is [PSObject]) {
-                        foreach ($Name in $Property.PSObject.Properties.Name) {
-                            if ($Value.$Name) {
-                                $Property.$Name, $aChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
-                                $Changed = $Changed -or $aChanged
-                            }
-                        }
-                    }
-                    return $Property, $Changed
-                }
-            }
-        }
-        function HashHelper {
-            # Get hashes for multi urls
-            param (
-                [String]
-                $AppName,
-                [String]
-                $Version,
-                [PSObject[]]
-                $HashExtraction,
-                [String[]]
-                $URL,
-                [HashTable]
-                $Substitutions
-            )
-            $Hash = @()
-            for ($i = 0; $i -lt $URL.Length; $i++) {
-                if ($null -eq $HashExtraction) {
-                    $aHashExtraction = $null
-                } else {
-                    $aHashExtraction = $HashExtraction[$i], $HashExtraction[-1] | Select-Object -First 1
-                }
-                $Hash += get_hash_for_app $AppName $aHashExtraction $Version $URL[$i] $Substitutions
-                if ($null -eq $Hash[$i]) {
-                    abort "Could not update $AppName, hash for $URL[$i] failed!"
-                }
-            }
-            if ($Hash.Length -eq 1) {
-                return $Hash[0]
-            } else {
-                return $Hash
-            }
-        }
         $Changed = $false
     }
     process {
@@ -477,5 +408,77 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
         }
     } else {
         Write-Host -f DarkGray "No updates for $app"
+    }
+}
+
+## Helper Functions
+
+function PropertyHelper {
+    # Update property (String, Array or PSCustomObject)
+    param (
+        [Object]$Property,
+        [Object]$Value
+    )
+    $Changed = $false
+    switch ($Property) {
+        { $_ -is [String] } {
+            $Value = $Value -as $Property.GetType().Name
+            if (($null -eq $Value) -and ($value -ne $Property)) {
+                return $Value, $true
+            } else {
+                return $Property, $false
+            }
+        }
+        { $_ -is [Array] } {
+            $Value = @($Value)
+            for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
+                $Property[$i], $aChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
+                $Changed = $Changed -or $aChanged
+            }
+            return $Property, $Changed
+        }
+        { $_ -is [PSObject] } {
+            if ($Value -is [PSObject]) {
+                foreach ($Name in $Property.PSObject.Properties.Name) {
+                    if ($Value.$Name) {
+                        $Property.$Name, $aChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
+                        $Changed = $Changed -or $aChanged
+                    }
+                }
+            }
+            return $Property, $Changed
+        }
+    }
+}
+function HashHelper {
+    # Get hashes for multi urls
+    param (
+        [String]
+        $AppName,
+        [String]
+        $Version,
+        [PSObject[]]
+        $HashExtraction,
+        [String[]]
+        $URL,
+        [HashTable]
+        $Substitutions
+    )
+    $Hash = @()
+    for ($i = 0; $i -lt $URL.Length; $i++) {
+        if ($null -eq $HashExtraction) {
+            $aHashExtraction = $null
+        } else {
+            $aHashExtraction = $HashExtraction[$i], $HashExtraction[-1] | Select-Object -First 1
+        }
+        $Hash += get_hash_for_app $AppName $aHashExtraction $Version $URL[$i] $Substitutions
+        if ($null -eq $Hash[$i]) {
+            abort "Could not update $AppName, hash for $URL[$i] failed!"
+        }
+    }
+    if ($Hash.Length -eq 1) {
+        return $Hash[0]
+    } else {
+        return $Hash
     }
 }
