@@ -382,7 +382,7 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
     $substitutions = get_version_substitutions $version $matches
 
     # update properties
-    $properties_updated = @(coalesce ($json.autoupdate.PSObject.Properties.Name -ne 'architecture') @())
+    $properties_updated = @(@($json.autoupdate.PSObject.Properties.Name) -ne 'architecture')
     if ($json.autoupdate.architecture) {
         $properties_updated += $json.autoupdate.architecture.PSObject.Properties.ForEach({ $_.Value.PSObject.Properties.Name}) | Select-Object -Unique
     }
@@ -420,34 +420,30 @@ function PropertyHelper {
         [Object]$Value
     )
     $Changed = $false
-    switch ($Property) {
-        { $_ -is [String] } {
-            $Value = $Value -as $Property.GetType().Name
-            if (($null -eq $Value) -and ($value -ne $Property)) {
-                return $Value, $true
-            } else {
-                return $Property, $false
-            }
+    if ($Property -is [String]) {
+        $Value = $Value -as $Property.GetType().Name
+        if (($null -eq $Value) -or ($value -eq $Property)) {
+            return $Property, $false
+        } else {
+            return $Value, $true
         }
-        { $_ -is [Array] } {
-            $Value = @($Value)
-            for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
-                $Property[$i], $aChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
-                $Changed = $Changed -or $aChanged
-            }
-            return $Property, $Changed
+    } elseif ($Property -is [Array]) {
+        $Value = @($Value)
+        for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
+            $Property[$i], $aChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
+            $Changed = $Changed -or $aChanged
         }
-        { $_ -is [PSObject] } {
-            if ($Value -is [PSObject]) {
-                foreach ($Name in $Property.PSObject.Properties.Name) {
-                    if ($Value.$Name) {
-                        $Property.$Name, $aChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
-                        $Changed = $Changed -or $aChanged
-                    }
+        return $Property, $Changed
+    } elseif ($Property -is [PSObject]) {
+        if ($Value -is [PSObject]) {
+            foreach ($Name in $Property.PSObject.Properties.Name) {
+                if ($Value.$Name) {
+                    $Property.$Name, $aChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
+                    $Changed = $Changed -or $aChanged
                 }
             }
-            return $Property, $Changed
         }
+        return $Property, $Changed
     }
 }
 function HashHelper {
