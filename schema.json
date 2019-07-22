@@ -189,16 +189,16 @@
                     "$ref": "#/definitions/shortcutsArray"
                 },
                 "installer": {
-                    "$ref": "#/definitions/installer"
+                    "additionalProperties": false,
+                    "properties": {
+                        "file": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
                 },
                 "post_install": {
                     "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "pre_install": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "uninstaller": {
-                    "$ref": "#/definitions/uninstaller"
                 },
                 "psmodule": {
                     "additionalProperties": false,
