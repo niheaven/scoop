@@ -216,72 +216,30 @@
             "type": "object"
         },
         "autoupdate": {
-            "additionalProperties": false,
-            "properties": {
-                "architecture": {
-                    "additionalProperties": false,
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/autoupdateArch"
+                },
+                {
                     "properties": {
-                        "32bit": {
-                            "$ref": "#/definitions/autoupdateArch"
+                        "note": {
+                            "$ref": "#/definitions/stringOrArrayOfStrings"
                         },
-                        "64bit": {
-                            "$ref": "#/definitions/autoupdateArch"
+                        "architecture": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "32bit": {
+                                    "$ref": "#/definitions/autoupdateArch"
+                                },
+                                "64bit": {
+                                    "$ref": "#/definitions/autoupdateArch"
+                                }
+                            }
                         }
-                    },
-                    "type": "object"
-                },
-                "url": {
-                    "$ref": "#/definitions/autoupdateUriOrArrayOfAutoupdateUris"
-                },
-                "hash": {
-                    "$ref": "#/definitions/hashExtractionOrArrayOfHashExtractions"
-                },
-                "extract_dir": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "extract_to": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "env_add_path": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "env_set": {
-                    "type": "object"
-                },
-                "bin": {
-                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                },
-                "shortcuts": {
-                    "$ref": "#/definitions/shortcutsArray"
-                },
-                "installer": {
-                    "$ref": "#/definitions/installer"
-                },
-                "post_install": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "pre_install": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
-                },
-                "uninstaller": {
-                    "$ref": "#/definitions/uninstaller"
-                },
-                "psmodule": {
-                    "additionalProperties": false,
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        }
-                    },
-                    "type": "object"
-                },
-                "persist": {
-                    "$ref": "#/definitions/stringOrArrayOfStringsOrAnArrayOfArrayOfStrings"
-                },
-                "note": {
-                    "$ref": "#/definitions/stringOrArrayOfStrings"
+                    }
                 }
-            },
+            ],
             "type": "object"
         },
         "checkver": {
