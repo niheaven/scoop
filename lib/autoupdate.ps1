@@ -282,6 +282,25 @@ function get_hash_for_app([String] $app, $config, [String] $version, [String] $u
 }
 
 function Update-ManifestProperty {
+    <#
+    .SYNOPSIS
+        Update propert(y|ies) in manifest
+    .DESCRIPTION
+        Update selected propert(y|ies) to given version in manifest.
+    .PARAMETER Manifest
+        Manifest to be updated
+    .PARAMETER Property
+        Selected propert(y|ies) to be updated
+    .PARAMETER AppName
+        Software name
+    .PARAMETER Version
+        Given software version
+    .PARAMETER Substitutions
+        Hashtable of internal substitutable variables
+    .OUTPUTS
+        System.Boolean
+            Flag that indicate if there are any changed properties
+    #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([Boolean])]
     param (
@@ -309,7 +328,7 @@ function Update-ManifestProperty {
                 if ($Manifest.hash) {
                     # Global
                     $NewURL = substitute $Manifest.autoupdate.url $Substitutions
-                    $NewHash = HashHelper $AppName $Version $Manifest.autoupdate.hash $NewURL $Substitutions
+                    $NewHash = HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $NewURL -Substitutions $Substitutions
                     $Manifest.hash, $aChanged = PropertyHelper -Property $Manifest.hash -Value $NewHash
                     $Changed = $Changed -or $aChanged
                 } else {
@@ -317,7 +336,7 @@ function Update-ManifestProperty {
                     $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
                         $Arch = $_.Name
                         $NewURL = substitute (arch_specific 'url' $Manifest.autoupdate $Arch) $Substitutions
-                        $NewHash = HashHelper $AppName $Version (arch_specific 'hash' $Manifest.autoupdate $Arch) $NewURL $Substitutions
+                        $NewHash = HashHelper -AppName $AppName -Version $Version -HashExtraction (arch_specific 'hash' $Manifest.autoupdate $Arch) -URL $NewURL -Substitutions $Substitutions
                         $Manifest.architecture.$Arch.hash, $aChanged = PropertyHelper -Property $Manifest.architecture.$Arch.hash -Value $NewHash
                         $Changed = $Changed -or $aChanged
                     }
@@ -414,14 +433,27 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
 ## Helper Functions
 
 function PropertyHelper {
-    # Update property (String, Array or PSCustomObject)
+    <#
+    .SYNOPSIS
+        Helper of updating property
+    .DESCRIPTION
+        Update manifest property (String, Array or PSCustomObject).
+    .PARAMETER Property
+        Property to be updated
+    .PARAMETER Value
+        New property values
+        Update line by line
+    .OUTPUTS
+        System.Object[]
+            The first element is new property, the second element is change flag
+    #>
     param (
         [Object]$Property,
         [Object]$Value
     )
     $Changed = $false
     if ($Property -is [String]) {
-        $Value = $Value -as $Property.GetType().Name
+        $Value = $Value -as [String]
         if (($null -eq $Value) -or ($value -eq $Property)) {
             return $Property, $false
         } else {
@@ -447,7 +479,28 @@ function PropertyHelper {
     }
 }
 function HashHelper {
-    # Get hashes for multi urls
+    <#
+    .SYNOPSIS
+        Helper of getting file hash(es)
+    .DESCRIPTION
+        Get file hash(es) by hash extraction template(s).
+        If hash extraction templates are less then URLs, the last template will be reused for the rest URLs.
+    .PARAMETER AppName
+        Software name
+    .PARAMETER Version
+        Given software version
+    .PARAMETER HashExtraction
+        Hash extraction template(s)
+    .PARAMETER URL
+        New download URL(s), used to calculate hash locally
+    .PARAMETER Substitutions
+        Hashtable of internal substitutable variables
+    .OUTPUTS
+        System.String
+            Hash value (single URL)
+        System.String[]
+            Hash values (multi URLs)
+    #>
     param (
         [String]
         $AppName,
