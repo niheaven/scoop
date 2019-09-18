@@ -319,41 +319,41 @@ function Update-ManifestProperty {
         $Substitutions
     )
     begin {
-        $Changed = $false
+        $hasManifestChanged = $false
     }
     process {
-        foreach ($aProperty in $Property) {
-            if ($aProperty -eq 'hash') {
+        foreach ($currentProperty in $Property) {
+            if ($currentProperty -eq 'hash') {
                 # Update hash
                 if ($Manifest.hash) {
                     # Global
-                    $NewURL = substitute $Manifest.autoupdate.url $Substitutions
-                    $NewHash = HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $NewURL -Substitutions $Substitutions
-                    $Manifest.hash, $aChanged = PropertyHelper -Property $Manifest.hash -Value $NewHash
-                    $Changed = $Changed -or $aChanged
+                    $newURL = substitute $Manifest.autoupdate.url $Substitutions
+                    $newHash = HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $newURL -Substitutions $Substitutions
+                    $Manifest.hash, $hasPropertyChanged = PropertyHelper -Property $Manifest.hash -Value $newHash
+                    $hasManifestChanged = $hasManifestChanged -or $hasPropertyChanged
                 } else {
                     # Arch-spec
                     $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
-                        $Arch = $_.Name
-                        $NewURL = substitute (arch_specific 'url' $Manifest.autoupdate $Arch) $Substitutions
-                        $NewHash = HashHelper -AppName $AppName -Version $Version -HashExtraction (arch_specific 'hash' $Manifest.autoupdate $Arch) -URL $NewURL -Substitutions $Substitutions
-                        $Manifest.architecture.$Arch.hash, $aChanged = PropertyHelper -Property $Manifest.architecture.$Arch.hash -Value $NewHash
-                        $Changed = $Changed -or $aChanged
+                        $arch = $_.Name
+                        $newURL = substitute (arch_specific 'url' $Manifest.autoupdate $arch) $Substitutions
+                        $newHash = HashHelper -AppName $AppName -Version $Version -HashExtraction (arch_specific 'hash' $Manifest.autoupdate $arch) -URL $newURL -Substitutions $Substitutions
+                        $Manifest.architecture.$arch.hash, $hasPropertyChanged = PropertyHelper -Property $Manifest.architecture.$arch.hash -Value $newHash
+                        $hasManifestChanged = $hasManifestChanged -or $hasPropertyChanged
                     }
                 }
-            } elseif ($Manifest.$aProperty -and $Manifest.autoupdate.$aProperty) {
+            } elseif ($Manifest.$currentProperty -and $Manifest.autoupdate.$currentProperty) {
                 # Update other property (global)
-                $NewValue = substitute $Manifest.autoupdate.$aProperty $Substitutions
-                $Manifest.$aProperty, $aChanged = PropertyHelper -Property $Manifest.$aProperty -Value $NewValue
-                $Changed = $Changed -or $aChanged
+                $newValue = substitute $Manifest.autoupdate.$currentProperty $Substitutions
+                $Manifest.$currentProperty, $hasPropertyChanged = PropertyHelper -Property $Manifest.$currentProperty -Value $newValue
+                $hasManifestChanged = $hasManifestChanged -or $hasPropertyChanged
             } elseif ($Manifest.architecture) {
                 # Update other property (arch-spec)
                 $Manifest.architecture | Get-Member -MemberType NoteProperty | ForEach-Object {
-                    $Arch = $_.Name
-                    if ($Manifest.architecture.$Arch.$aProperty -and ($Manifest.autoupdate.architecture.$Arch.$aProperty -or $Manifest.autoupdate.$aProperty)) {
-                        $NewValue = substitute (arch_specific $aProperty $Manifest.autoupdate $Arch) $Substitutions
-                        $Manifest.architecture.$Arch.$aProperty, $aChanged = PropertyHelper -Property $Manifest.architecture.$Arch.$aProperty -Value $NewValue
-                        $Changed = $Changed -or $aChanged
+                    $arch = $_.Name
+                    if ($Manifest.architecture.$arch.$currentProperty -and ($Manifest.autoupdate.architecture.$arch.$currentProperty -or $Manifest.autoupdate.$currentProperty)) {
+                        $newValue = substitute (arch_specific $currentProperty $Manifest.autoupdate $arch) $Substitutions
+                        $Manifest.architecture.$arch.$currentProperty, $hasPropertyChanged = PropertyHelper -Property $Manifest.architecture.$arch.$currentProperty -Value $newValue
+                        $hasManifestChanged = $hasManifestChanged -or $hasPropertyChanged
                     }
                 }
             }
@@ -362,9 +362,9 @@ function Update-ManifestProperty {
     end {
         if ($Version -ne '' -and $Manifest.version -ne $Version) {
             $Manifest.version = $Version
-            $Changed = $true
+            $hasManifestChanged = $true
         }
-        return $Changed
+        return $hasManifestChanged
     }
 }
 
@@ -401,25 +401,20 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
     $substitutions = get_version_substitutions $version $matches
 
     # update properties
-    $properties_updated = @(@($json.autoupdate.PSObject.Properties.Name) -ne 'architecture')
+    $updatedProperties = @(@($json.autoupdate.PSObject.Properties.Name) -ne 'architecture')
     if ($json.autoupdate.architecture) {
-        $properties_updated += $json.autoupdate.architecture.PSObject.Properties.ForEach({ $_.Value.PSObject.Properties.Name}) | Select-Object -Unique
+        $updatedProperties += $json.autoupdate.architecture.PSObject.Properties | ForEach-Object { $_.Value.PSObject.Properties.Name } | Select-Object -Unique
     }
-    if (!($properties_updated -eq 'hash')) {
-        $properties_updated += 'hash'
+    if (!($updatedProperties -eq 'hash')) {
+        $updatedProperties += 'hash'
     }
-    debug [Array]$properties_updated
-    $has_changes = Update-ManifestProperty -Manifest $json -Property $properties_updated -AppName $app -Version $version -Substitutions $substitutions
+    debug [Array]$updatedProperties
+    $hasChanged = Update-ManifestProperty -Manifest $json -Property $updatedProperties -AppName $app -Version $version -Substitutions $substitutions
 
-    if ($has_changes) {
+    if ($hasChanged) {
         # write file
         Write-Host -f DarkGreen "Writing updated $app manifest"
-
-        $path = join-path $dir "$app.json"
-
-        $file_content = $json | ConvertToPrettyJson
-        [System.IO.File]::WriteAllLines($path, $file_content)
-
+        $json | ConvertToPrettyJson | Set-Content (Join-Path $dir "$app.json") -Encoding ASCII
         # notes
         if ($json.autoupdate.note) {
             Write-Host ""
@@ -451,7 +446,7 @@ function PropertyHelper {
         [Object]$Property,
         [Object]$Value
     )
-    $Changed = $false
+    $hasChanged = $false
     if ($Property -is [String]) {
         $Value = $Value -as [String]
         if (($null -eq $Value) -or ($value -eq $Property)) {
@@ -462,20 +457,20 @@ function PropertyHelper {
     } elseif ($Property -is [Array]) {
         $Value = @($Value)
         for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
-            $Property[$i], $aChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
-            $Changed = $Changed -or $aChanged
+            $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
+            $hasChanged = $hasChanged -or $hasItemChanged
         }
-        return $Property, $Changed
+        return $Property, $hasChanged
     } elseif ($Property -is [PSObject]) {
         if ($Value -is [PSObject]) {
             foreach ($Name in $Property.PSObject.Properties.Name) {
                 if ($Value.$Name) {
-                    $Property.$Name, $aChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
-                    $Changed = $Changed -or $aChanged
+                    $Property.$Name, $hasItemChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
+                    $hasChanged = $hasChanged -or $hasItemChanged
                 }
             }
         }
-        return $Property, $Changed
+        return $Property, $hasChanged
     }
 }
 function HashHelper {
@@ -513,21 +508,17 @@ function HashHelper {
         [HashTable]
         $Substitutions
     )
-    $Hash = @()
+    $hash = @()
     for ($i = 0; $i -lt $URL.Length; $i++) {
         if ($null -eq $HashExtraction) {
-            $aHashExtraction = $null
+            $currentHashExtraction = $null
         } else {
-            $aHashExtraction = $HashExtraction[$i], $HashExtraction[-1] | Select-Object -First 1
+            $currentHashExtraction = $HashExtraction[$i], $HashExtraction[-1] | Select-Object -First 1
         }
-        $Hash += get_hash_for_app $AppName $aHashExtraction $Version $URL[$i] $Substitutions
-        if ($null -eq $Hash[$i]) {
-            abort "Could not update $AppName, hash for $URL[$i] failed!"
+        $hash += get_hash_for_app $AppName $currentHashExtraction $Version $URL[$i] $Substitutions
+        if ($null -eq $hash[$i]) {
+            abort "Could not update $AppName, hash for $($URL[$i]) failed!"
         }
     }
-    if ($Hash.Length -eq 1) {
-        return $Hash[0]
-    } else {
-        return $Hash
-    }
+    return $hash
 }

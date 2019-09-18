@@ -836,7 +836,7 @@ function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
         return $entity | ForEach-Object { substitute $_ $params $regexEscape }
     } elseif ($entity -is [PSObject]) {
         $newentity = $entity.PSObject.Copy()
-        $newentity.PSObject.Properties.ForEach( { $_.Value = substitute $_.Value $params $regexEscape })
+        $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
         return $newentity
     }
 }
