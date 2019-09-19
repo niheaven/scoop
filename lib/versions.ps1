@@ -27,6 +27,7 @@ function Compare-Version {
 
 
     # Trim metadata from version (usually anything after the '+' sign, if we're considering semver)
+    # This metadata usually doesn't matter to the end user anyways and is of no value for the comparison.
     $ReferenceVersion = $ReferenceVersion.split("+")[0]
     $DifferenceVersion = $DifferenceVersion.split("+")[0]
 
