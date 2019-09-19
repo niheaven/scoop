@@ -305,7 +305,7 @@ function Update-ManifestProperty {
     [OutputType([Boolean])]
     param (
         [Parameter(Mandatory = $true, Position = 1)]
-        [PSObject]
+        [PSCustomObject]
         $Manifest,
         [Parameter(ValueFromPipeline = $true, Position = 2)]
         [String[]]
@@ -314,7 +314,7 @@ function Update-ManifestProperty {
         $AppName,
         [String]
         $Version,
-        [Alias("Matches")]
+        [Alias('Matches')]
         [HashTable]
         $Substitutions
     )
@@ -447,32 +447,38 @@ function PropertyHelper {
         [Object]$Value
     )
     $hasChanged = $false
-    if ($Property -is [String]) {
-        $Value = $Value -as [String]
-        if (($null -eq $Value) -or ($value -eq $Property)) {
-            return $Property, $false
-        } else {
-            return $Value, $true
+    switch ($Property.GetType().Name) {
+        'String' {
+            $Value = $Value -as [String]
+            if (($null -ne $Value) -and ($value -ne $Property)) {
+                $Property = $Value
+                $hasChanged = $true
+            }
+            break
         }
-    } elseif ($Property -is [Array]) {
-        $Value = @($Value)
-        for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
-            $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
-            $hasChanged = $hasChanged -or $hasItemChanged
+        'Object[]' {
+            $Value = @($Value)
+            for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
+                $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
+                $hasChanged = $hasChanged -or $hasItemChanged
+            }
+            break
         }
-        return $Property, $hasChanged
-    } elseif ($Property -is [PSObject]) {
-        if ($Value -is [PSObject]) {
-            foreach ($Name in $Property.PSObject.Properties.Name) {
-                if ($Value.$Name) {
-                    $Property.$Name, $hasItemChanged = PropertyHelper -Property $Property.$Name -Value $Value.$Name
-                    $hasChanged = $hasChanged -or $hasItemChanged
+        'PSCustomObject' {
+            if ($Value -is [PSObject]) {
+                foreach ($name in $Property.PSObject.Properties.Name) {
+                    if ($Value.$name) {
+                        $Property.$name, $hasItemChanged = PropertyHelper -Property $Property.$name -Value $Value.$name
+                        $hasChanged = $hasChanged -or $hasItemChanged
+                    }
                 }
             }
+            break
         }
-        return $Property, $hasChanged
     }
+    return $Property, $hasChanged
 }
+
 function HashHelper {
     <#
     .SYNOPSIS
@@ -517,7 +523,7 @@ function HashHelper {
         }
         $hash += get_hash_for_app $AppName $currentHashExtraction $Version $URL[$i] $Substitutions
         if ($null -eq $hash[$i]) {
-            abort "Could not update $AppName, hash for $($URL[$i]) failed!"
+            throw "Could not update $AppName, hash for $($URL[$i]) failed!"
         }
     }
     return $hash
