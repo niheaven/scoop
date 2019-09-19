@@ -25,6 +25,12 @@ function Compare-Version {
         $Delimiter = '-'
     )
 
+
+    # Trim metadata from version (usually anything after the '+' sign, if we're considering semver)
+    $ReferenceVersion = $ReferenceVersion.split("+")[0]
+    $DifferenceVersion = $DifferenceVersion.split("+")[0]
+
+
     if ($DifferenceVersion -eq $ReferenceVersion) {
         return 0
     }
