@@ -112,11 +112,17 @@ describe "versions" -Tag 'Scoop' {
 
         it 'handles post-release tagging' {
             Compare-Version "1" "1+hotfix.0" | Should -be 1
-            Compare-Version "1.0.0" "1.0.0+hotfix.0" Should -be 1
-            Compare-Version "1.0.0+hotfix+0" "1.0.0+hotfix.1" | Should -be 1
+            Compare-Version "1.0.0" "1.0.0+hotfix.0" | Should -be 1
+            Compare-Version "1.0.0+hotfix.0" "1.0.0+hotfix.1" | Should -be 1
             Compare-Version "1.0.0+hotfix.1" "1.0.1" | Should -be 1
             Compare-Version "0.5.0-rc.1" "0.5.0+hotfix.1" | Should -be 1
+            Compare-Version "0.5.0+update" "0.5.0-rc.1" | Should -be -1
             Compare-Version "1.0.0+a" "1.0.0+b" | Should -be 1
+        }
+
+        it 'handles post-release tagging AND metadata' {
+            Compare-Version "1+hotfix.0+metadata" "1+hotfix.0+notthesamemetadata" | Should -be 0
+            Compare-Version "1.2.3.4+maintenance.1.7+somemeta" "1.2.3.4+maintenance.1.7.1+othermeta" | Should -be 1
         }
     }
 }
