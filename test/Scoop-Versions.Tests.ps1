@@ -100,5 +100,14 @@ describe "versions" -Tag 'Scoop' {
             Compare-Version "1.4" "1.3.255.255" | Should -be -1
             Compare-Version "1.4" "1.4.4" | Should -be 1
         }
+
+        it 'handles post-release tagging' {
+            Compare-Version "1" "1+hotfix.0" | Should -be 1
+            Compare-Version "1.0.0" "1.0.0+hotfix.0" Should -be 1
+            Compare-Version "1.0.0+hotfix+0" "1.0.0+hotfix.1" | Should -be 1
+            Compare-Version "1.0.0+hotfix.1" "1.0.1" | Should -be 1
+            Compare-Version "0.5.0-rc.1" "0.5.0+hotfix.1" | Should -be 1
+            Compare-Version "1.0.0+a" "1.0.0+b" | Should -be 1
+        }
     }
 }
