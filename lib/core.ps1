@@ -849,16 +849,13 @@ function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
                     $newentity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
                 }
             }
-            break
         }
         'Object[]' {
             $newentity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
-            break
         }
         'PSCustomObject' {
             $newentity = $entity.PSObject.Copy()
             $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
-            break
         }
     }
     return $newentity

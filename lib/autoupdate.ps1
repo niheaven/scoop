@@ -454,7 +454,6 @@ function PropertyHelper {
                 $Property = $Value
                 $hasChanged = $true
             }
-            break
         }
         'Object[]' {
             $Value = @($Value)
@@ -462,7 +461,6 @@ function PropertyHelper {
                 $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
                 $hasChanged = $hasChanged -or $hasItemChanged
             }
-            break
         }
         'PSCustomObject' {
             if ($Value -is [PSObject]) {
@@ -473,7 +471,6 @@ function PropertyHelper {
                     }
                 }
             }
-            break
         }
     }
     return $Property, $hasChanged
