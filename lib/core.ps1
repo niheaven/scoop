@@ -839,28 +839,29 @@ function is_scoop_outdated() {
 }
 
 function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
+    $newentity = $entity
     switch ($entity.GetType().Name) {
         'String' {
             $params.GetEnumerator() | ForEach-Object {
                 if ($regexEscape -eq $false -or $null -eq $_.Value) {
-                    $entity = $entity.Replace($_.Name, $_.Value)
+                    $newentity = $entity.Replace($_.Name, $_.Value)
                 } else {
-                    $entity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
+                    $newentity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
                 }
             }
             break
         }
         'Object[]' {
-            $entity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
+            $newentity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
             break
         }
         'PSCustomObject' {
-            $entity = $entity.PSObject.Copy()
-            $entity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
+            $newentity = $entity.PSObject.Copy()
+            $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
             break
         }
     }
-    return $entity
+    return $newentity
 }
 
 function format_hash([String] $hash) {
