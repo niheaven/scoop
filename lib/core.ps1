@@ -844,9 +844,9 @@ function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
         'String' {
             $params.GetEnumerator() | ForEach-Object {
                 if ($regexEscape -eq $false -or $null -eq $_.Value) {
-                    $newentity = $entity.Replace($_.Name, $_.Value)
+                    $newentity = $newentity.Replace($_.Name, $_.Value)
                 } else {
-                    $newentity = $entity.Replace($_.Name, [Regex]::Escape($_.Value))
+                    $newentity = $newentity.Replace($_.Name, [Regex]::Escape($_.Value))
                 }
             }
         }
@@ -854,7 +854,6 @@ function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
             $newentity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
         }
         'PSCustomObject' {
-            $newentity = $entity.PSObject.Copy()
             $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
         }
     }
