@@ -481,7 +481,7 @@ function HashHelper {
     .SYNOPSIS
         Helper of getting file hash(es)
     .DESCRIPTION
-        Get file hash(es) by hash extraction template(s).
+        Extract or calculate file hash(es).
         If hash extraction templates are less then URLs, the last template will be reused for the rest URLs.
     .PARAMETER AppName
         Software name
@@ -490,7 +490,7 @@ function HashHelper {
     .PARAMETER HashExtraction
         Hash extraction template(s)
     .PARAMETER URL
-        New download URL(s), used to calculate hash locally
+        New download URL(s), used to calculate hash locally (fallback)
     .PARAMETER Substitutions
         Hashtable of internal substitutable variables
     .OUTPUTS
