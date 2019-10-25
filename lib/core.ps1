@@ -840,21 +840,23 @@ function is_scoop_outdated() {
 
 function substitute($entity, [Hashtable] $params, [Bool]$regexEscape = $false) {
     $newentity = $entity
-    switch ($entity.GetType().Name) {
-        'String' {
-            $params.GetEnumerator() | ForEach-Object {
-                if ($regexEscape -eq $false -or $null -eq $_.Value) {
-                    $newentity = $newentity.Replace($_.Name, $_.Value)
-                } else {
-                    $newentity = $newentity.Replace($_.Name, [Regex]::Escape($_.Value))
+    if ($null -ne $newentity) {
+        switch ($entity.GetType().Name) {
+            'String' {
+                $params.GetEnumerator() | ForEach-Object {
+                    if ($regexEscape -eq $false -or $null -eq $_.Value) {
+                        $newentity = $newentity.Replace($_.Name, $_.Value)
+                    } else {
+                        $newentity = $newentity.Replace($_.Name, [Regex]::Escape($_.Value))
+                    }
                 }
             }
-        }
-        'Object[]' {
-            $newentity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
-        }
-        'PSCustomObject' {
-            $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
+            'Object[]' {
+                $newentity = $entity | ForEach-Object { substitute $_ $params $regexEscape }
+            }
+            'PSCustomObject' {
+                $newentity.PSObject.Properties | ForEach-Object { $_.Value = substitute $_.Value $params $regexEscape }
+            }
         }
     }
     return $newentity
