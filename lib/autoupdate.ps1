@@ -403,12 +403,13 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
     # update properties
     $updatedProperties = @(@($json.autoupdate.PSObject.Properties.Name) -ne 'architecture')
     if ($json.autoupdate.architecture) {
-        $updatedProperties += $json.autoupdate.architecture.PSObject.Properties | ForEach-Object { $_.Value.PSObject.Properties.Name } | Select-Object -Unique
+        $updatedProperties += $json.autoupdate.architecture.PSObject.Properties | ForEach-Object { $_.Value.PSObject.Properties.Name }
     }
-    if (!($updatedProperties -eq 'hash')) {
+    if ($updatedProperties -contains 'url') {
         $updatedProperties += 'hash'
     }
-    debug [Array]$updatedProperties
+    $updatedProperties = $updatedProperties | Select-Object -Unique
+    debug [String]$updatedProperties
     $hasChanged = Update-ManifestProperty -Manifest $json -Property $updatedProperties -AppName $app -Version $version -Substitutions $substitutions
 
     if ($hasChanged) {
@@ -447,27 +448,32 @@ function PropertyHelper {
         [Object]$Value
     )
     $hasChanged = $false
-    switch ($Property.GetType().Name) {
-        'String' {
-            $Value = $Value -as [String]
-            if (($null -ne $Value) -and ($value -ne $Property)) {
-                $Property = $Value
-                $hasChanged = $true
+    if (@($Property).Length -lt @($Value).Length) {
+        $Property = $Value
+        $hasChanged = $true
+    } else {
+        switch ($Property.GetType().Name) {
+            'String' {
+                $Value = $Value -as [String]
+                if (($null -ne $Value) -and ($Value -ne $Property)) {
+                    $Property = $Value
+                    $hasChanged = $true
+                }
             }
-        }
-        'Object[]' {
-            $Value = @($Value)
-            for ($i = 0; $i -lt [Math]::Min($Property.Length, $Value.Length); $i++) {
-                $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
-                $hasChanged = $hasChanged -or $hasItemChanged
+            'Object[]' {
+                $Value = @($Value)
+                for ($i = 0; $i -lt $Value.Length; $i++) {
+                    $Property[$i], $hasItemChanged = PropertyHelper -Property $Property[$i] -Value $Value[$i]
+                    $hasChanged = $hasChanged -or $hasItemChanged
+                }
             }
-        }
-        'PSCustomObject' {
-            if ($Value -is [PSObject]) {
-                foreach ($name in $Property.PSObject.Properties.Name) {
-                    if ($Value.$name) {
-                        $Property.$name, $hasItemChanged = PropertyHelper -Property $Property.$name -Value $Value.$name
-                        $hasChanged = $hasChanged -or $hasItemChanged
+            'PSCustomObject' {
+                if ($Value -is [PSObject]) {
+                    foreach ($name in $Property.PSObject.Properties.Name) {
+                        if ($Value.$name) {
+                            $Property.$name, $hasItemChanged = PropertyHelper -Property $Property.$name -Value $Value.$name
+                            $hasChanged = $hasChanged -or $hasItemChanged
+                        }
                     }
                 }
             }
@@ -520,7 +526,7 @@ function HashHelper {
         }
         $hash += get_hash_for_app $AppName $currentHashExtraction $Version $URL[$i] $Substitutions
         if ($null -eq $hash[$i]) {
-            throw "Could not update $AppName, hash for $($URL[$i]) failed!"
+            throw "Could not update $AppName, hash for $(url_remote_filename $URL[$i]) failed!"
         }
     }
     return $hash
