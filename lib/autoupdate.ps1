@@ -455,7 +455,7 @@ function PropertyHelper {
         switch ($Property.GetType().Name) {
             'String' {
                 $Value = $Value -as [String]
-                if (($null -ne $Value) -and ($Value -ne $Property)) {
+                if ($null -ne $Value) {
                     $Property = $Value
                     $hasChanged = $true
                 }
