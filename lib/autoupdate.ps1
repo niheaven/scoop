@@ -368,23 +368,30 @@ function Update-ManifestProperty {
     }
 }
 
-function get_version_substitutions([String] $version, [Hashtable] $customMatches) {
-    $firstPart = $version.Split('-') | Select-Object -first 1
-    $lastPart = $version.Split('-') | Select-Object -last 1
+function Get-VersionSubstitution {
+    param (
+        [String]
+        $Version,
+        [Hashtable]
+        $CustomMatches
+    )
+
+    $firstPart = $Version.Split('-') | Select-Object -First 1
+    $lastPart = $Version.Split('-') | Select-Object -Last 1
     $versionVariables = @{
-        '$version' = $version;
-        '$underscoreVersion' = ($version -replace "\.", "_");
-        '$dashVersion' = ($version -replace "\.", "-");
-        '$cleanVersion' = ($version -replace "\.", "");
-        '$majorVersion' = $firstPart.Split('.') | Select-Object -first 1;
-        '$minorVersion' = $firstPart.Split('.') | Select-Object -skip 1 -first 1;
-        '$patchVersion' = $firstPart.Split('.') | Select-Object -skip 2 -first 1;
-        '$buildVersion' = $firstPart.Split('.') | Select-Object -skip 3 -first 1;
+        '$version' = $Version;
+        '$underscoreVersion' = ($Version -replace "\.", "_");
+        '$dashVersion' = ($Version -replace "\.", "-");
+        '$cleanVersion' = ($Version -replace "\.", "");
+        '$majorVersion' = $firstPart.Split('.') | Select-Object -First 1;
+        '$minorVersion' = $firstPart.Split('.') | Select-Object -Skip 1 -First 1;
+        '$patchVersion' = $firstPart.Split('.') | Select-Object -Skip 2 -First 1;
+        '$buildVersion' = $firstPart.Split('.') | Select-Object -Skip 3 -First 1;
         '$preReleaseVersion' = $lastPart;
     }
-    if($version -match "(?<head>\d+\.\d+(?:\.\d+)?)(?<tail>.*)") {
-        $versionVariables.Set_Item('$matchHead', $matches['head'])
-        $versionVariables.Set_Item('$matchTail', $matches['tail'])
+    if($Version -match "(?<head>\d+\.\d+(?:\.\d+)?)(?<tail>.*)") {
+        $versionVariables.Set_Item('$matchHead', $Matches['head'])
+        $versionVariables.Set_Item('$matchTail', $Matches['tail'])
     }
     if($customMatches) {
         $customMatches.GetEnumerator() | ForEach-Object {
@@ -396,38 +403,51 @@ function get_version_substitutions([String] $version, [Hashtable] $customMatches
     return $versionVariables
 }
 
-function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $matches) {
-    Write-Host -f DarkCyan "Autoupdating $app"
-    $substitutions = get_version_substitutions $version $matches
+function Invoke-AutoUpdate {
+    param (
+        [String]
+        $App,
+        [String]
+        $Path,
+        [PSObject]
+        $Manifest,
+        [String]
+        $Version,
+        [Hashtable]
+        $CustomMatches
+    )
+
+    Write-Host "Autoupdating $App" -ForegroundColor DarkCyan
+    $substitutions = Get-VersionSubstitution $Version $CustomMatches
 
     # update properties
-    $updatedProperties = @(@($json.autoupdate.PSObject.Properties.Name) -ne 'architecture')
-    if ($json.autoupdate.architecture) {
-        $updatedProperties += $json.autoupdate.architecture.PSObject.Properties | ForEach-Object { $_.Value.PSObject.Properties.Name }
+    $updatedProperties = @(@($Manifest.autoupdate.PSObject.Properties.Name) -ne 'architecture')
+    if ($Manifest.autoupdate.architecture) {
+        $updatedProperties += $Manifest.autoupdate.architecture.PSObject.Properties | ForEach-Object { $_.Value.PSObject.Properties.Name }
     }
     if ($updatedProperties -contains 'url') {
         $updatedProperties += 'hash'
     }
     $updatedProperties = $updatedProperties | Select-Object -Unique
     debug [String]$updatedProperties
-    $hasChanged = Update-ManifestProperty -Manifest $json -Property $updatedProperties -AppName $app -Version $version -Substitutions $substitutions
+    $hasChanged = Update-ManifestProperty -Manifest $Manifest -Property $updatedProperties -AppName $App -Version $Version -Substitutions $substitutions
 
     if ($hasChanged) {
         # write file
-        Write-Host -f DarkGreen "Writing updated $app manifest"
+        Write-Host "Writing updated $App manifest" -ForegroundColor DarkGreen
         # Accept unusual Unicode characters
         # 'Set-Content -Encoding ASCII' don't works in PowerShell 5
         # Wait for 'UTF8NoBOM' Encoding in PowerShell 7
-        # $json | ConvertToPrettyJson | Set-Content -Path (Join-Path $dir "$app.json") -Encoding UTF8NoBOM
-        [System.IO.File]::WriteAllLines((Join-Path $dir "$app.json"), (ConvertToPrettyJson $json))
+        # $Manifest | ConvertToPrettyJson | Set-Content -Path (Join-Path $dir "$app.json") -Encoding UTF8NoBOM
+        [System.IO.File]::WriteAllLines((Join-Path $Path "$App.json"), (ConvertToPrettyJson $Manifest))
         # notes
-        if ($json.autoupdate.note) {
+        if ($Manifest.autoupdate.note) {
             Write-Host ""
-            Write-Host -f DarkYellow $json.autoupdate.note
+            Write-Host $Manifest.autoupdate.note -ForegroundColor DarkYellow
         }
     } else {
         # This if-else branch may not be in use.
-        Write-Host -f DarkGray "No updates for $app"
+        Write-Host "No updates for $App" -ForegroundColor DarkGray
     }
 }
 
