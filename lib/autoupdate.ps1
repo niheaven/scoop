@@ -429,7 +429,7 @@ function Invoke-AutoUpdate {
         $updatedProperties += 'hash'
     }
     $updatedProperties = $updatedProperties | Select-Object -Unique
-    debug [String]$updatedProperties
+    debug [$updatedProperties]
     $hasChanged = Update-ManifestProperty -Manifest $Manifest -Property $updatedProperties -AppName $App -Version $Version -Substitutions $substitutions
 
     if ($hasChanged) {
