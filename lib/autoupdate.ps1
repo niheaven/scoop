@@ -415,13 +415,18 @@ function autoupdate([String] $app, $dir, $json, [String] $version, [Hashtable] $
     if ($hasChanged) {
         # write file
         Write-Host -f DarkGreen "Writing updated $app manifest"
-        $json | ConvertToPrettyJson | Set-Content (Join-Path $dir "$app.json") -Encoding ASCII
+        # Accept unusual Unicode characters
+        # 'Set-Content -Encoding ASCII' don't works in PowerShell 5
+        # Wait for 'UTF8NoBOM' Encoding in PowerShell 7
+        # $json | ConvertToPrettyJson | Set-Content -Path (Join-Path $dir "$app.json") -Encoding UTF8NoBOM
+        [System.IO.File]::WriteAllLines((Join-Path $dir "$app.json"), (ConvertToPrettyJson $json))
         # notes
         if ($json.autoupdate.note) {
             Write-Host ""
             Write-Host -f DarkYellow $json.autoupdate.note
         }
     } else {
+        # This if-else branch may not be in use.
         Write-Host -f DarkGray "No updates for $app"
     }
 }
