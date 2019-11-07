@@ -254,42 +254,6 @@ Describe "get_app_name_from_ps1_shim" -Tag 'Scoop' {
     }
 }
 
-describe "ensure_robocopy_in_path" -Tag 'Scoop' {
-    $shimdir = shimdir $false
-    mock versiondir { $repo_dir }
-
-    beforeall {
-        reset_aliases
-    }
-
-    context "robocopy is not in path" {
-        it "shims robocopy when not on path" -skip:$isUnix {
-            mock Test-CommandAvailable { $false }
-            Test-CommandAvailable robocopy | should -be $false
-
-            ensure_robocopy_in_path
-
-            "$shimdir/robocopy.ps1" | should -exist
-            "$shimdir/robocopy.exe" | should -exist
-
-            # clean up
-            rm_shim robocopy $(shimdir $false) | out-null
-        }
-    }
-
-    context "robocopy is in path" {
-        it "does not shim robocopy when it is in path" -skip:$isUnix {
-            mock Test-CommandAvailable { $true }
-            Test-CommandAvailable robocopy | should -be $true
-
-            ensure_robocopy_in_path
-
-            "$shimdir/robocopy.ps1" | should -not -exist
-            "$shimdir/robocopy.exe" | should -not -exist
-        }
-    }
-}
-
 describe 'sanitary_path' -Tag 'Scoop' {
   it 'removes invalid path characters from a string' {
     $path = 'test?.json'

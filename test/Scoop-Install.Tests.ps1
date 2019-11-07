@@ -75,32 +75,6 @@ describe "is_in_dir" -Tag 'Scoop' {
     }
 }
 
-describe "env add and remove path" -Tag 'Scoop' {
-    # test data
-    $manifest = @{
-        "env_add_path" = @("foo", "bar")
-    }
-    $testdir = join-path $psscriptroot "path-test-directory"
-    $global = $false
-
-    # store the original path to prevent leakage of tests
-    $origPath = $env:PATH
-
-    it "should concat the correct path" -skip:$isUnix {
-        mock add_first_in_path {}
-        mock remove_from_path {}
-
-        # adding
-        env_add_path $manifest $testdir $global
-        Assert-MockCalled add_first_in_path -Times 1 -ParameterFilter {$dir -like "$testdir\foo"}
-        Assert-MockCalled add_first_in_path -Times 1 -ParameterFilter {$dir -like "$testdir\bar"}
-
-        env_rm_path $manifest $testdir $global
-        Assert-MockCalled remove_from_path -Times 1 -ParameterFilter {$dir -like "$testdir\foo"}
-        Assert-MockCalled remove_from_path -Times 1 -ParameterFilter {$dir -like "$testdir\bar"}
-    }
-}
-
 describe "shim_def" -Tag 'Scoop' {
     it "should use strings correctly" {
         $target, $name, $shimArgs = shim_def "command.exe"

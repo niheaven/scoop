@@ -675,51 +675,6 @@ function Confirm-InstallationStatus {
     return ,$Installed
 }
 
-function strip_path($orig_path, $dir) {
-    if($null -eq $orig_path) { $orig_path = '' }
-    $stripped = [string]::join(';', @( $orig_path.split(';') | Where-Object { $_ -and $_ -ne $dir } ))
-    return ($stripped -ne $orig_path), $stripped
-}
-
-function add_first_in_path($dir, $global) {
-    $dir = fullpath $dir
-
-    # future sessions
-    $null, $currpath = strip_path (env 'path' $global) $dir
-    env 'path' $global "$dir;$currpath"
-
-    # this session
-    $null, $env:PATH = strip_path $env:PATH $dir
-    $env:PATH = "$dir;$env:PATH"
-}
-
-function remove_from_path($dir, $global) {
-    $dir = fullpath $dir
-
-    # future sessions
-    $was_in_path, $newpath = strip_path (env 'path' $global) $dir
-    if($was_in_path) {
-        Write-Output "Removing $(friendly_path $dir) from your path."
-        env 'path' $global $newpath
-    }
-
-    # current session
-    $was_in_path, $newpath = strip_path $env:PATH $dir
-    if($was_in_path) { $env:PATH = $newpath }
-}
-
-function ensure_scoop_in_path($global) {
-    $abs_shimdir = ensure (shimdir $global)
-    # be aggressive (b-e-aggressive) and install scoop first in the path
-    ensure_in_path $abs_shimdir $global
-}
-
-function ensure_robocopy_in_path {
-    if(!(Test-CommandAvailable robocopy)) {
-        shim "C:\Windows\System32\Robocopy.exe" $false
-    }
-}
-
 function wraptext($text, $width) {
     if(!$width) { $width = $host.ui.rawui.buffersize.width };
     $width -= 1 # be conservative: doesn't seem to print the last char
