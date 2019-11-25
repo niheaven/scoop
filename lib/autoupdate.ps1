@@ -380,9 +380,10 @@ function Get-VersionSubstitution {
     $lastPart = $Version.Split('-') | Select-Object -Last 1
     $versionVariables = @{
         '$version' = $Version;
-        '$underscoreVersion' = ($Version -replace "\.", "_");
-        '$dashVersion' = ($Version -replace "\.", "-");
-        '$cleanVersion' = ($Version -replace "\.", "");
+        '$dotVersion' = ($Version -replace '[._-]', '.');
+        '$underscoreVersion' = ($Version -replace '[._-]', '_');
+        '$dashVersion' = ($Version -replace '[._-]', '-');
+        '$cleanVersion' = ($Version -replace '[._-]', '');
         '$majorVersion' = $firstPart.Split('.') | Select-Object -First 1;
         '$minorVersion' = $firstPart.Split('.') | Select-Object -Skip 1 -First 1;
         '$patchVersion' = $firstPart.Split('.') | Select-Object -Skip 2 -First 1;
@@ -393,8 +394,8 @@ function Get-VersionSubstitution {
         $versionVariables.Set_Item('$matchHead', $Matches['head'])
         $versionVariables.Set_Item('$matchTail', $Matches['tail'])
     }
-    if($customMatches) {
-        $customMatches.GetEnumerator() | ForEach-Object {
+    if($CustomMatches) {
+        $CustomMatches.GetEnumerator() | ForEach-Object {
             if($_.Name -ne "0") {
                 $versionVariables.Set_Item('$match' + (Get-Culture).TextInfo.ToTitleCase($_.Name), $_.Value)
             }
@@ -406,7 +407,7 @@ function Get-VersionSubstitution {
 function Invoke-AutoUpdate {
     param (
         [String]
-        $App,
+        $AppName,
         [String]
         $Path,
         [PSObject]
@@ -417,7 +418,7 @@ function Invoke-AutoUpdate {
         $CustomMatches
     )
 
-    Write-Host "Autoupdating $App" -ForegroundColor DarkCyan
+    Write-Host "Autoupdating $AppName" -ForegroundColor DarkCyan
     $substitutions = Get-VersionSubstitution $Version $CustomMatches
 
     # update properties
@@ -430,16 +431,16 @@ function Invoke-AutoUpdate {
     }
     $updatedProperties = $updatedProperties | Select-Object -Unique
     debug [$updatedProperties]
-    $hasChanged = Update-ManifestProperty -Manifest $Manifest -Property $updatedProperties -AppName $App -Version $Version -Substitutions $substitutions
+    $hasChanged = Update-ManifestProperty -Manifest $Manifest -Property $updatedProperties -AppName $AppName -Version $Version -Substitutions $substitutions
 
     if ($hasChanged) {
         # write file
-        Write-Host "Writing updated $App manifest" -ForegroundColor DarkGreen
+        Write-Host "Writing updated $AppName manifest" -ForegroundColor DarkGreen
         # Accept unusual Unicode characters
         # 'Set-Content -Encoding ASCII' don't works in PowerShell 5
         # Wait for 'UTF8NoBOM' Encoding in PowerShell 7
-        # $Manifest | ConvertToPrettyJson | Set-Content -Path (Join-Path $dir "$app.json") -Encoding UTF8NoBOM
-        [System.IO.File]::WriteAllLines((Join-Path $Path "$App.json"), (ConvertToPrettyJson $Manifest))
+        # $Manifest | ConvertToPrettyJson | Set-Content -Path (Join-Path $Path "$AppName.json") -Encoding UTF8NoBOM
+        [System.IO.File]::WriteAllLines((Join-Path $Path "$AppName.json"), (ConvertToPrettyJson $Manifest))
         # notes
         if ($Manifest.autoupdate.note) {
             Write-Host ""
@@ -447,7 +448,7 @@ function Invoke-AutoUpdate {
         }
     } else {
         # This if-else branch may not be in use.
-        Write-Host "No updates for $App" -ForegroundColor DarkGray
+        Write-Host "No updates for $AppName" -ForegroundColor DarkGray
     }
 }
 
