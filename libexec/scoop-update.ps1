@@ -61,15 +61,15 @@ $show_update_log = get_config SHOW_UPDATE_LOG $true
 $movedPath = Remove-Path -Path "$scoopdir\apps\*" -Quiet -PassThru
 if ($movedPath) {
     info 'Switching to isolated path... This may take a while, please wait.'
-    Add-Path -Path $movedPath -TargetEnvVar 'SCOOP_PATH' -Quiet
-    Add-Path -Path '%SCOOP_PATH%' -Quiet
+    Add-Path -Path $movedPath -TargetEnvVar $scoopPathEnvVar -Quiet
+    Add-Path -Path ('%' + $scoopPathEnvVar + '%') -Quiet
 }
 if (is_admin) {
     $movedPath = Remove-Path -Path "$globaldir\apps\*" -Global -Quiet -PassThru
     if ($movedPath) {
         info 'Switching to isolated global path... This may take a while, please wait.'
-        Add-Path -Path $movedPath -TargetEnvVar 'SCOOP_PATH' -Global -Quiet
-        Add-Path -Path '%SCOOP_PATH%' -Global -Quiet
+        Add-Path -Path $movedPath -TargetEnvVar $scoopPathEnvVar -Global -Quiet
+        Add-Path -Path ('%' + $scoopPathEnvVar + '%') -Global -Quiet
     }
 }
 

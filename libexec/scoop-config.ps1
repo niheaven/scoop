@@ -115,6 +115,10 @@
 #       Nightly version is formatted as 'nightly-yyyyMMdd' and will be updated after one day if this is set to $true.
 #       Otherwise, nightly version will not be updated unless `--force` is used.
 #
+# scoop_path_envvar: SCOOP_PATH
+#       Environment variable to store Scoop apps' PATH. If not set, it defaults to 'SCOOP_PATH'.
+#       This Environment variable is nested in the user's PATH.
+#
 # ARIA2 configuration
 # -------------------
 #

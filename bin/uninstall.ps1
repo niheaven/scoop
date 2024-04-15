@@ -100,6 +100,6 @@ if ($purge) {
 }
 
 Remove-Path -Path (shimdir $global) -Global:$global
-Remove-Path -Path '%SCOOP_PATH%' -Global:$global
+Remove-Path -Path ('%' + $scoopPathEnvVar + '%') -Global:$global
 
 success 'Scoop has been uninstalled.'

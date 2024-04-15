@@ -1351,6 +1351,9 @@ $globaldir = $env:SCOOP_GLOBAL, (get_config GLOBAL_PATH), "$([System.Environment
 #       Use at your own risk.
 $cachedir = $env:SCOOP_CACHE, (get_config CACHE_PATH), "$scoopdir\cache" | Where-Object { $_ } | Select-Object -First 1 | Get-AbsolutePath
 
+# Isolated PATH Environment Variable
+$scoopPathEnvVar = get_config SCOOP_PATH_ENVVAR 'SCOOP_PATH'
+
 # OS information
 $WindowsBuild = [System.Environment]::OSVersion.Version.Build
 
